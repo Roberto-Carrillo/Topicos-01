@@ -6,57 +6,47 @@ from scipy.stats import levy_stable
 from .vec_2d import Vec2d
 
 
-def create_brownian_trajectory(start_pos, n_steps):
+def create_brownian_trajectory(start_pos=[0,0], n_steps=1000, speed = 0.5):
 
-    # Creamos un arreglo de 2 vectores de n_steps de longitud, y asignamos
-    # la posición inicial en la primera pocisión de cada vector
-    out = np.zeros((2, n_steps))
-    out[0] = start_pos[0]
-    out[1] = start_pos[1]
+    velocity = Vec2d(speed, 0)
+    #Init DF
+    BM_2d_df = pd.DataFrame(columns=['x_pos', 'y_pos'])
+    temp_df = pd.DataFrame([{ 
+        'x_pos': start_pos[0], 
+        'y_pos': start_pos[1], 
+    }])
 
-    for curr_step in range(1, n_steps):
+    BM_2d_df = pd.concat([BM_2d_df, temp_df], ignore_index=True)
 
-        # Definimos una dirección que tiene uniforme probabilidad de moverse
-        # en alguna de las 4 direcciones, y definimos la posición anterior como referencia
-        direction = np.random.choice(["UP", "DOWN", "LEFT", "RIGHT"])
-        prev_x = out[0][curr_step - 1]
-        prev_y = out[1][curr_step - 1]
-
-        # Asignamos el valor de la nueva trayectoria añadiendo el valor de la posición previa
-        if (direction == "UP"):
-            out[0][curr_step] = prev_x
-            out[1][curr_step] = prev_y + 1
-        elif (direction == "DOWN"):
-            out[0][curr_step] = prev_x
-            out[1][curr_step] = prev_y - 1
-        elif (direction == "LEFT"):
-            out[0][curr_step] = prev_x - 1
-            out[1][curr_step] = prev_y
-        else:
-            out[0][curr_step] = prev_x + 1
-            out[1][curr_step] = prev_y
-
-    return out
-
-
-def create_crw_trajectory(start_pos=(0, 0), n_steps=1000, coeficient=0.5):
-    # Inicializando vector de velocidad
-    velocity = Vec2d(coeficient, 0)
-    # Creando matriz para el caminado aleatorio, y distribución de pasos
-    turn_angle_dist = np.array(wrapcauchy.rvs(coeficient, size=n_steps))
-    BM_2d = np.ones(shape=(n_steps, 2)) * start_pos
-
-    for i in range(1, n_steps):
-
-        # Use wrapCauchy to generate random number
-        turn_angle = turn_angle_dist[i]
-        # Girar el vector de velocidad
+    for i in range(n_steps - 1):
+        #turn_angle = np.random.choice([0, np.pi/2, np.pi, 3*np.pi/2])
+        turn_angle = np.random.uniform(low=-np.pi, high=np.pi)
         velocity = velocity.rotated(turn_angle)
+        temp_df = pd.DataFrame([{
+            'x_pos': BM_2d_df.x_pos[i] + velocity.x,
+            'y_pos': BM_2d_df.y_pos[i] + velocity.y
+        }])
+        BM_2d_df = pd.concat([BM_2d_df, temp_df], ignore_index=True)
+    
+    return BM_2d_df
 
-        # Desplazamiento con el vector
-        BM_2d[i, 0] = BM_2d[i-1, 0] + velocity.x
-        BM_2d[i, 1] = BM_2d[i-1, 1] + velocity.y
-    return BM_2d
+
+def create_crw_trajectory(start_pos=(0, 0), n_steps=1000, crw_exp=0.5):
+    vector = Vec2d(crw_exp, 0)
+    crw_2d_df = pd.DataFrame(columns=['x_pos', 'y_pos'])
+    temp_df = pd.DataFrame([{ 'x_pos': start_pos[0], 'y_pos': start_pos[1] }])
+    crw_2d_df = pd.concat([crw_2d_df, temp_df], ignore_index=True)
+    cauchy_rvs = np.array(wrapcauchy.rvs(crw_exp, size=n_steps))
+
+    for i in range(n_steps - 1):
+        next_pos =  vector.rotated(cauchy_rvs[i])
+        next_pos_df = pd.DataFrame([{
+            'x_pos': crw_2d_df.x_pos[i] + next_pos.x,
+            'y_pos': crw_2d_df.y_pos[i] + next_pos.y
+        }])
+        crw_2d_df = pd.concat([crw_2d_df, next_pos_df], ignore_index=True)
+    
+    return crw_2d_df
 
 # Definición de Función para generar trayectoria
 
@@ -95,3 +85,5 @@ def create_levy_trajectory(start_pos=[0, 0], n_steps=500, levy_exp=0.5, beta=0):
         levy_2d_df = pd.concat([levy_2d_df, next_pos_df], ignore_index=True)
 
     return levy_2d_df
+
+__all__ = ["create_brownian_trajectory", "create_levy_trajectory", "create_crw_trajectory"]
