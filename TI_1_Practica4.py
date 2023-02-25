@@ -32,7 +32,7 @@ with st.sidebar:
     with st.container():
         st.subheader("Parámetros")
         traj_type = st.radio("Tipo de Trayectoria", ('Brownian Motion', 'Lévy Flight', 'Correlated Random Walk'), key="traj_type")
-        n_steps = st.number_input("Número de pasos", min_value=10, max_value=20000, value=1000, key="n_steps")
+        n_steps = st.number_input("Número de pasos", min_value=50, max_value=20000, value=600, key="n_steps")
         col1, col2 = st.columns(2)
 
         with col1:
@@ -64,6 +64,13 @@ with st.sidebar:
                 sh.get_svar('crw_exp')
             )
         metrics_type = st.radio("Tipo de Métricas", ('Path Length', 'Mean Squared Displacement'), key="metrics_type")
+
+        if(n_steps < 90):
+            st.warning('Muy pocos pasos puede provocar una visualización no confiable del MSD!',icon="⚠️")
+        elif(n_steps > 1000):
+            st.warning('Muchos pasos puede retrasar la visualización del MSD',icon="⚠️")
+            st.stop()
+
         if metrics_type == 'Path Length':
             sh.regen_traj_pl()
         else:
